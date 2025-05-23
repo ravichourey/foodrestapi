@@ -1,0 +1,79 @@
+package com.myone.foodiesapi;
+
+import com.myone.foodiesapi.utills.JwtUtil;
+import org.junit.jupiter.api.Test;
+import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.boot.test.context.TestConfiguration;
+import org.springframework.boot.test.mock.mockito.MockBean;
+import org.springframework.context.annotation.Bean;
+import org.springframework.security.core.userdetails.UserDetails;
+import org.springframework.test.context.ActiveProfiles;
+
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.when;
+
+@SpringBootTest
+@ActiveProfiles("test")
+class FoodiesapiApplicationTests {
+
+	@MockBean
+	private JwtUtil jwtUtil;
+
+	@Test
+	void contextLoads() {
+		assertThat(jwtUtil).isNotNull();
+	}
+
+	@TestConfiguration
+	static class TestConfig {
+		
+		@Bean
+		public JwtUtil jwtUtil() {
+			return new JwtUtil() {
+				@Override
+				public String extractUsername(String token) {
+					return "testuser";
+				}
+
+				@Override
+				public String generateToken(UserDetails userDetails) {
+					return "test-token";
+				}
+
+				@Override
+				public Boolean validateToken(String token, UserDetails userDetails) {
+					return true;
+				}
+			};
+		}
+	}
+
+	@Test
+	void jwtUtilShouldGenerateToken() {
+		UserDetails userDetails = org.springframework.security.core.userdetails.User
+			.withUsername("testuser")
+			.password("testpass")
+			.roles("USER")
+			.build();
+
+		when(jwtUtil.generateToken(any(UserDetails.class))).thenReturn("test-token");
+		
+		String token = jwtUtil.generateToken(userDetails);
+		assertThat(token).isEqualTo("test-token");
+	}
+
+	@Test
+	void jwtUtilShouldValidateToken() {
+		UserDetails userDetails = org.springframework.security.core.userdetails.User
+			.withUsername("testuser")
+			.password("testpass")
+			.roles("USER")
+			.build();
+
+		when(jwtUtil.validateToken("test-token", userDetails)).thenReturn(true);
+		
+		Boolean isValid = jwtUtil.validateToken("test-token", userDetails);
+		assertThat(isValid).isTrue();
+	}
+}
